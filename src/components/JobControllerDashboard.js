@@ -5,7 +5,7 @@ import ExpertStageForm from "./ExpertStageForm";
 import JobCardReceivedForm from "./JobCardReceivedForm";
 import './JobControllerDashboard.css';
 
-const API_BASE = "http://localhost:5000/api";
+const API_BASE = "https://mg-vts-backend.onrender.com/api";
 
 // Map history types to state keys and endpoints
 const HISTORY_MAP = {

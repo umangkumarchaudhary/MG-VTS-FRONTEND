@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import './BayAllocationForm.css';
 
-const API_BASE = "http://localhost:5000/api";
+const API_BASE = "https://mg-vts-backend.onrender.com/api";
 
 const BayAllocationForm = () => {
   const [vehicleNumber, setVehicleNumber] = useState("");
