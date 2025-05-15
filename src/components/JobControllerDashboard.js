@@ -155,51 +155,51 @@ const JobControllerDashboard = () => {
 
           {/* Bay Allocation History */}
           {selectedHistory === "bayAllocation" && !loading && (
-            <div className="history-table-container">
-              <h3>Bay Allocation History</h3>
-              {historyData.bayAllocations.length > 0 ? (
-                <table className="history-table">
-                  <thead>
-                    <tr>
-                      <th>Vehicle Number</th>
-                      <th>Date/Time</th>
-                      <th>Performed By</th>
-                      <th>Vehicle Model</th>
-                      <th>Service Type</th>
-                      <th>Technicians</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {historyData.bayAllocations.map((allocation, index) => (
-                      <tr key={index}>
-                        <td>{allocation.vehicleNumber || 'N/A'}</td>
-                        <td>{allocation.startTime ? formatDate(allocation.startTime) : 'N/A'}</td>
-                        <td>
-                          {allocation.performedBy
-                            ? (typeof allocation.performedBy === 'object'
-                              ? allocation.performedBy.name
-                              : allocation.performedBy)
-                            : 'N/A'}
-                        </td>
-                        <td>{allocation.vehicleModel || 'N/A'}</td>
-                        <td>{allocation.serviceType || 'N/A'}</td>
-                        <td>
-                          {allocation.technicians && Array.isArray(allocation.technicians) && allocation.technicians.length > 0
-                            ? allocation.technicians.map(tech =>
-                              typeof tech === 'object' ? tech.name : tech).join(', ')
-                            : 'None'}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              ) : (
-                <div className="no-history-message">
-                  No bay allocation history found.
-                </div>
-              )}
-            </div>
-          )}
+  <div className="history-table-container">
+    <h3>Bay Allocation History</h3>
+    {historyData.bayAllocations.length > 0 ? (
+      <table className="history-table">
+        <thead>
+          <tr>
+            <th>Vehicle Number</th>
+            <th>Date/Time</th>
+            <th>Performed By</th>
+            <th>Vehicle Model</th>
+            <th>Service Type</th>
+            <th>Job Description</th>
+            <th>Item Description</th>
+            <th>FRT Hours</th>
+            <th>Technicians</th>
+            <th>First Allocation?</th>
+          </tr>
+        </thead>
+        <tbody>
+          {historyData.bayAllocations.map((allocation, index) => (
+            <tr key={index}>
+              <td>{allocation.vehicleNumber || 'N/A'}</td>
+              <td>{allocation.startTime ? formatDate(allocation.startTime) : 'N/A'}</td>
+              <td>{allocation.performedBy?.name || 'N/A'}</td>
+              <td>{allocation.vehicleModel || 'N/A'}</td>
+              <td>{allocation.serviceType || 'N/A'}</td>
+              <td>{allocation.jobDescription || 'N/A'}</td>
+              <td>{allocation.itemDescription || 'N/A'}</td>
+              <td>{allocation.frtHours || 'N/A'}</td>
+              <td>
+                {Array.isArray(allocation.technicians) && allocation.technicians.length > 0
+                  ? allocation.technicians.map(tech => tech?.name || tech).join(', ')
+                  : 'None'}
+              </td>
+              <td>{allocation.isFirstAllocation ? 'Yes' : 'No'}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    ) : (
+      <div className="no-history-message">No bay allocation history found.</div>
+    )}
+  </div>
+)}
+
 
           {/* Expert Stage History */}
           {selectedHistory === "expertStage" && !loading && (
