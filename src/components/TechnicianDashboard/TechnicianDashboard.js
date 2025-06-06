@@ -4,8 +4,8 @@ import {useNavigate} from "react-router-dom";
 import { QrReader } from "react-qr-reader";
 import "./TechnicianDashboard.css";
 
-const API_URL = "http://localhost:5000/api/vehicle-check";
-const WIP_URL = "http://localhost:5000/api/work-in-progress";
+const API_URL = "https://mg-vts-backend.onrender.com/api/vehicle-check";
+const WIP_URL = "https://mg-vts-backend.onrender.com/api/work-in-progress";
 
 
 
