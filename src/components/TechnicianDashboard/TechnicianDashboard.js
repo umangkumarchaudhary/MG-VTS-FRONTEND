@@ -242,7 +242,9 @@ const TechnicianDashboard = (props) => {
                   handleScan(result.getText());
                 }
               }}
-              style={{ width: "100%" }}
+              videoContainerStyle={{ width: "100%", aspectRatio: "1/1" }}
+      videoStyle={{ width: "100%", objectFit: "cover" }}
+      style={{ width: "100%" }}
             />
             <button type="button" className="close-qr-btn" onClick={() => setShowQr(false)}>Close Scanner</button>
           </div>

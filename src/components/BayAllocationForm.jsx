@@ -36,12 +36,13 @@ const BayAllocationForm = () => {
   const [vehicleModel, setVehicleModel] = useState("");
   const [customVehicleModel, setCustomVehicleModel] = useState("");
   const [vehicleModelSearch, setVehicleModelSearch] = useState("");
-  const [serviceType, setServiceType] = useState("");
+  const [serviceTypes, setServiceTypes] = useState([]);
   const [itemDescription, setItemDescription] = useState("");
   const [itemDescriptionSearch, setItemDescriptionSearch] = useState("");
   const [customItemDescription, setCustomItemDescription] = useState("");
   const [frtHours, setFrtHours] = useState("");
   const [customFrtHours, setCustomFrtHours] = useState("");
+  const [itemList, setItemList] = useState([]);
   const [technicians, setTechnicians] = useState([]);
   const [technicianOptions, setTechnicianOptions] = useState([]);
   const [message, setMessage] = useState("");
@@ -50,9 +51,11 @@ const BayAllocationForm = () => {
   const [itemDescriptionOptions, setItemDescriptionOptions] = useState([]);
   const [showVehicleModelDropdown, setShowVehicleModelDropdown] = useState(false);
   const [showItemDescriptionDropdown, setShowItemDescriptionDropdown] = useState(false);
+  const [showServiceTypeDropdown, setShowServiceTypeDropdown] = useState(false);
 
   const vehicleModelInputRef = useRef(null);
   const itemDescriptionInputRef = useRef(null);
+  const serviceTypeInputRef = useRef(null);
 
   // Fetch technicians on mount
   useEffect(() => {
@@ -144,13 +147,23 @@ const BayAllocationForm = () => {
     setCustomVehicleModel("");
   };
 
+  // Toggle service type selection
+  const toggleServiceType = (type) => {
+    setServiceTypes(prev => {
+      if (prev.includes(type)) {
+        return prev.filter(t => t !== type);
+      } else {
+        return [...prev, type];
+      }
+    });
+  };
+
   // Handle item description selection
   const handleItemDescriptionSelect = (desc) => {
     setItemDescription(desc);
     setShowItemDescriptionDropdown(false);
     setItemDescriptionSearch("");
     setCustomItemDescription("");
-    setCustomFrtHours("");
     // Set FRT if found
     const selectedItem = itemDescriptionOptions.find(item => item.description === desc);
     setFrtHours(selectedItem ? selectedItem.frt.toString() : "");
@@ -161,7 +174,42 @@ const BayAllocationForm = () => {
     setItemDescription("Other");
     setShowItemDescriptionDropdown(false);
     setCustomItemDescription("");
+    setFrtHours("");
+  };
+
+  // Add item to the list
+  const addItemToList = () => {
+    if (!itemDescription && !customItemDescription) {
+      setMessage("Please select or enter an item description");
+      return;
+    }
+    if (!frtHours && !customFrtHours) {
+      setMessage("Please enter FRT hours");
+      return;
+    }
+
+    const finalItemDescription = itemDescription === "Other" ? customItemDescription : itemDescription;
+    const finalFrtHours = itemDescription === "Other" ? customFrtHours : frtHours;
+
+    setItemList(prev => [
+      ...prev,
+      {
+        description: finalItemDescription,
+        frtHours: finalFrtHours
+      }
+    ]);
+
+    // Reset fields
+    setItemDescription("");
+    setCustomItemDescription("");
+    setFrtHours("");
     setCustomFrtHours("");
+    setMessage("");
+  };
+
+  // Remove item from list
+  const removeItemFromList = (index) => {
+    setItemList(prev => prev.filter((_, i) => i !== index));
   };
 
   // Submit bay allocation
@@ -170,16 +218,19 @@ const BayAllocationForm = () => {
     setLoading(true);
     setMessage("");
     let finalVehicleModel = vehicleModel === "Other" ? customVehicleModel : vehicleModel;
-    let finalItemDescription = itemDescription === "Other" ? customItemDescription : itemDescription;
-    let finalFrtHours = itemDescription === "Other" ? customFrtHours : frtHours;
 
     if (vehicleModel === "Other" && !customVehicleModel) {
       setMessage("Please enter the vehicle model name.");
       setLoading(false);
       return;
     }
-    if (itemDescription === "Other" && (!customItemDescription || !customFrtHours)) {
-      setMessage("Please enter both item description and FRT hours.");
+    if (serviceTypes.length === 0) {
+      setMessage("Please select at least one service type.");
+      setLoading(false);
+      return;
+    }
+    if (itemList.length === 0) {
+      setMessage("Please add at least one item to the list.");
       setLoading(false);
       return;
     }
@@ -192,10 +243,9 @@ const BayAllocationForm = () => {
           stage: "bayAllocation",
           eventType: "Start",
           vehicleModel: finalVehicleModel,
-          serviceType,
+          serviceTypes,
           jobDescription,
-          itemDescription: finalItemDescription,
-          frtHours: finalFrtHours,
+          items: itemList,
           technicians,
         },
         { headers: { ...getAuthHeader(), "Content-Type": "application/json" } }
@@ -214,11 +264,12 @@ const BayAllocationForm = () => {
     setJobDescription("");
     setVehicleModel("");
     setCustomVehicleModel("");
-    setServiceType("");
+    setServiceTypes([]);
     setItemDescription("");
     setCustomItemDescription("");
     setFrtHours("");
     setCustomFrtHours("");
+    setItemList([]);
     setTechnicians([]);
     setItemDescriptionOptions([]);
     setVehicleModelSearch("");
@@ -250,6 +301,12 @@ const BayAllocationForm = () => {
         !itemDescriptionInputRef.current.contains(event.target)
       ) {
         setShowItemDescriptionDropdown(false);
+      }
+      if (
+        serviceTypeInputRef.current &&
+        !serviceTypeInputRef.current.contains(event.target)
+      ) {
+        setShowServiceTypeDropdown(false);
       }
       const techDropdown = document.getElementById("tech-dropdown-container");
       if (techDropdown && !techDropdown.contains(event.target)) {
@@ -364,24 +421,65 @@ const BayAllocationForm = () => {
             </div>
           </div>
 
-          {/* Service Type */}
+          {/* Service Type - Multi-select */}
           <div className="form-span-2">
-            <div className="form-group">
+            <div className="form-group" ref={serviceTypeInputRef}>
               <label htmlFor="serviceType">Service Type</label>
-              <select
-                id="serviceType"
-                value={serviceType}
-                onChange={(e) => setServiceType(e.target.value)}
-                required
-                className="select-input"
-              >
-                <option value="">Select service type</option>
-                {serviceTypeOptions.map((type) => (
-                  <option key={type} value={type}>
-                    {type}
-                  </option>
-                ))}
-              </select>
+              <div className="custom-dropdown-container">
+                <div
+                  className="selected-techs-display"
+                  onClick={() => setShowServiceTypeDropdown(!showServiceTypeDropdown)}
+                  tabIndex={0}
+                >
+                  {serviceTypes.length > 0 ? (
+                    <div className="selected-techs-chips">
+                      {serviceTypes.map(type => (
+                        <div key={type} className="tech-chip">
+                          <span>{type}</span>
+                          <span
+                            className="remove-tech"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleServiceType(type);
+                            }}
+                          >
+                            ×
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <span className="placeholder-text">Select service types</span>
+                  )}
+                  <span className="dropdown-arrow">{showServiceTypeDropdown ? '▲' : '▼'}</span>
+                </div>
+                {showServiceTypeDropdown && (
+                  <div className="tech-dropdown-list">
+                    {serviceTypeOptions.map((type) => (
+                      <div
+                        key={type}
+                        className={`tech-option ${serviceTypes.includes(type) ? 'selected' : ''}`}
+                        onClick={() => toggleServiceType(type)}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={serviceTypes.includes(type)}
+                          onChange={() => {}}
+                          id={`service-${type}`}
+                        />
+                        <label htmlFor={`service-${type}`}>{type}</label>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <input
+                  type="hidden"
+                  name="serviceTypes"
+                  value={serviceTypes}
+                  required={serviceTypes.length === 0}
+                />
+              </div>
+              <small className="tech-help">Click to select multiple service types</small>
             </div>
           </div>
 
@@ -414,112 +512,89 @@ const BayAllocationForm = () => {
             </div>
           </div>
 
-          {/* Item Description with Searchable Dropdown & Custom Option */}
-          <div className="form-span-3">
-            <div className="form-group" ref={itemDescriptionInputRef}>
-              <label htmlFor="itemDescription">Item Description</label>
-              {itemDescriptionOptions.length > 0 ? (
-                <div className="custom-dropdown-container">
-                  <div
-                    className="selected-techs-display"
-                    onClick={() => setShowItemDescriptionDropdown(!showItemDescriptionDropdown)}
-                    tabIndex={0}
-                  >
-                    <span>
-                      {itemDescription === "Other"
-                        ? customItemDescription || <span className="placeholder-text">Other (Enter item)</span>
-                        : itemDescription || <span className="placeholder-text">Select or search item</span>
-                      }
-                    </span>
-                    <span className="dropdown-arrow">{showItemDescriptionDropdown ? '▲' : '▼'}</span>
-                  </div>
-                  {showItemDescriptionDropdown && (
-                    <div className="tech-dropdown-list" style={{ maxHeight: 220 }}>
-                      <input
-                        type="text"
-                        autoFocus
-                        value={itemDescriptionSearch}
-                        onChange={e => setItemDescriptionSearch(e.target.value)}
-                        placeholder="Search item..."
-                        style={{ width: "95%", margin: "7px auto", display: "block", padding: 6, borderRadius: 5, border: "1px solid #ddd" }}
-                      />
-                      {filteredItemDescriptions.length > 0 ? (
-                        filteredItemDescriptions.map(item => (
-                          <div
-                            key={item.description}
-                            className={`tech-option${itemDescription === item.description ? " selected" : ""}`}
-                            onClick={() => handleItemDescriptionSelect(item.description)}
-                          >
-                            {item.description}
-                          </div>
-                        ))
-                      ) : (
-                        <div className="tech-option disabled">No item found</div>
-                      )}
-                      <div
-                        className={`tech-option${itemDescription === "Other" ? " selected" : ""}`}
-                        style={{ color: "#2563eb", fontWeight: 600 }}
-                        onClick={handleCustomItemDescription}
-                      >
-                        + Other (Add New Item)
-                      </div>
+          {/* Item Description Section */}
+          <div className="form-span-4">
+            <div className="form-group">
+              <label>Add Items</label>
+              
+              {/* Item Description Input */}
+              <div className="form-group" ref={itemDescriptionInputRef}>
+                <label htmlFor="itemDescription">Item Description</label>
+                {itemDescriptionOptions.length > 0 ? (
+                  <div className="custom-dropdown-container">
+                    <div
+                      className="selected-techs-display"
+                      onClick={() => setShowItemDescriptionDropdown(!showItemDescriptionDropdown)}
+                      tabIndex={0}
+                    >
+                      <span>
+                        {itemDescription === "Other"
+                          ? customItemDescription || <span className="placeholder-text">Other (Enter item)</span>
+                          : itemDescription || <span className="placeholder-text">Select or search item</span>
+                        }
+                      </span>
+                      <span className="dropdown-arrow">{showItemDescriptionDropdown ? '▲' : '▼'}</span>
                     </div>
-                  )}
-                  {itemDescription === "Other" && (
-                    <>
+                    {showItemDescriptionDropdown && (
+                      <div className="tech-dropdown-list" style={{ maxHeight: 220 }}>
+                        <input
+                          type="text"
+                          autoFocus
+                          value={itemDescriptionSearch}
+                          onChange={e => setItemDescriptionSearch(e.target.value)}
+                          placeholder="Search item..."
+                          style={{ width: "95%", margin: "7px auto", display: "block", padding: 6, borderRadius: 5, border: "1px solid #ddd" }}
+                        />
+                        {filteredItemDescriptions.length > 0 ? (
+                          filteredItemDescriptions.map(item => (
+                            <div
+                              key={item.description}
+                              className={`tech-option${itemDescription === item.description ? " selected" : ""}`}
+                              onClick={() => handleItemDescriptionSelect(item.description)}
+                            >
+                              {item.description}
+                            </div>
+                          ))
+                        ) : (
+                          <div className="tech-option disabled">No item found</div>
+                        )}
+                        <div
+                          className={`tech-option${itemDescription === "Other" ? " selected" : ""}`}
+                          style={{ color: "#2563eb", fontWeight: 600 }}
+                          onClick={handleCustomItemDescription}
+                        >
+                          + Other (Add New Item)
+                        </div>
+                      </div>
+                    )}
+                    {itemDescription === "Other" && (
                       <input
                         type="text"
                         value={customItemDescription}
                         onChange={e => setCustomItemDescription(e.target.value)}
                         placeholder="Enter item description"
                         style={{ marginTop: 7 }}
-                        required
                       />
-                      <input
-                        type="number"
-                        min="0.1"
-                        step="0.1"
-                        value={customFrtHours}
-                        onChange={e => setCustomFrtHours(e.target.value)}
-                        placeholder="Enter FRT hours"
-                        style={{ marginTop: 7 }}
-                        required
-                      />
-                    </>
-                  )}
-                </div>
-              ) : (
-                <>
+                    )}
+                  </div>
+                ) : (
                   <input
                     id="itemDescription"
                     type="text"
-                    value={itemDescription}
+                    value={itemDescription === "Other" ? customItemDescription : itemDescription}
                     onChange={(e) => {
-                      setItemDescription(e.target.value);
-                      setFrtHours("");
+                      if (itemDescription === "Other") {
+                        setCustomItemDescription(e.target.value);
+                      } else {
+                        setItemDescription(e.target.value);
+                      }
                     }}
-                    placeholder="Enter parts/items needed"
-                    required
+                    placeholder="Enter item description"
                   />
-                  <input
-                    id="frtHours"
-                    type="number"
-                    min="0.1"
-                    step="0.1"
-                    value={frtHours}
-                    onChange={(e) => setFrtHours(e.target.value)}
-                    placeholder="Hours"
-                    style={{ marginTop: 7 }}
-                    required
-                  />
-                </>
-              )}
-            </div>
-          </div>
+                )}
+              </div>
 
-          {/* FRT Hours (readonly if selected from list, editable if custom) */}
-          {itemDescriptionOptions.length > 0 && itemDescription !== "Other" && (
-            <div className="form-span-1">
+              {/* FRT Hours Input */}
               <div className="form-group">
                 <label htmlFor="frtHours">FRT Hours</label>
                 <input
@@ -527,15 +602,63 @@ const BayAllocationForm = () => {
                   type="number"
                   min="0.1"
                   step="0.1"
-                  value={frtHours}
-                  onChange={(e) => setFrtHours(e.target.value)}
-                  placeholder="Hours"
-                  required
-                  readOnly
+                  value={itemDescription === "Other" ? customFrtHours : frtHours}
+                  onChange={(e) => {
+                    if (itemDescription === "Other") {
+                      setCustomFrtHours(e.target.value);
+                    } else {
+                      setFrtHours(e.target.value);
+                    }
+                  }}
+                  placeholder="Enter FRT hours"
                 />
               </div>
+
+              {/* Add Item Button */}
+              <div className="form-group">
+                <button
+                  type="button"
+                  onClick={addItemToList}
+                  className="add-item-button"
+                >
+                  Add Item to List
+                </button>
+              </div>
+
+              {/* Items List */}
+              {itemList.length > 0 && (
+                <div className="items-list-container">
+                  <h4>Selected Items:</h4>
+                  <table className="items-table">
+                    <thead>
+                      <tr>
+                        <th>Item Description</th>
+                        <th>FRT Hours</th>
+                        <th>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {itemList.map((item, index) => (
+                        <tr key={index}>
+                          <td>{item.description}</td>
+                          <td>{item.frtHours}</td>
+                          <td>
+                            <button
+                              type="button"
+                              onClick={() => removeItemFromList(index)}
+                              className="remove-item-button"
+                            >
+                              Remove
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
-          )}
+          </div>
 
           {/* Technicians Selection */}
           <div className="form-span-4">
